@@ -52,10 +52,9 @@ flutter:
 
   assets:
     - assets/icon/splash.png
-    # Аудио-клипы фазы 6 (манифест — docs/AUDIO.md). Папка объявлена как
-    # директория: положенные владельцем файлы попадают в сборку автоматически
-    # (нужен повторный `flutter pub get`). Пока пусто — звук no-op (см.
-    # core/audio/audio_manager.dart). `.gitkeep` бандлером игнорируется.
+    # Аудио-клипы фазы 6 (.wav, сгенерированы tool/gen_audio.py; манифест —
+    # docs/AUDIO.md). Папка объявлена директорией — любые файлы внутри попадают
+    # в сборку. Нет файла → звук no-op (core/audio/audio_manager.dart).
     - assets/audio/
 
   fonts:

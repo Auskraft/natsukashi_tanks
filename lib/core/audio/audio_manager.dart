@@ -62,29 +62,29 @@ class AudioManager {
 
   // ── Контракт имён файлов (с docs/AUDIO.md и assets/audio/) ─────────────────
   static const Map<MusicTrack, String> _musicFiles = {
-    MusicTrack.menu: 'music_menu.ogg',
-    MusicTrack.battle: 'music_battle.ogg',
-    MusicTrack.boss: 'music_boss.ogg',
+    MusicTrack.menu: 'music_menu.wav',
+    MusicTrack.battle: 'music_battle.wav',
+    MusicTrack.boss: 'music_boss.wav',
   };
 
   static const Map<SfxEvent, _SfxSpec> _sfxSpecs = {
-    SfxEvent.playerShoot: _SfxSpec('sfx_shoot_player.ogg', 0.55),
-    SfxEvent.enemyShoot: _SfxSpec('sfx_shoot_enemy.ogg', 0.38),
-    SfxEvent.brickHit: _SfxSpec('sfx_brick.ogg', 0.55),
-    SfxEvent.steelHit: _SfxSpec('sfx_steel.ogg', 0.55),
-    SfxEvent.bulletClash: _SfxSpec('sfx_clash.ogg', 0.6),
-    SfxEvent.explosion: _SfxSpec('sfx_explosion.ogg', 0.85),
-    SfxEvent.bossExplosion: _SfxSpec('sfx_explosion_big.ogg', 1.0),
-    SfxEvent.tankSpawn: _SfxSpec('sfx_spawn.ogg', 0.5),
-    SfxEvent.powerUpAppear: _SfxSpec('sfx_powerup_appear.ogg', 0.5),
-    SfxEvent.powerUpTaken: _SfxSpec('sfx_powerup.ogg', 0.8),
-    SfxEvent.upgrade: _SfxSpec('sfx_upgrade.ogg', 0.85),
-    SfxEvent.playerHit: _SfxSpec('sfx_player_hit.ogg', 0.9),
-    SfxEvent.baseAlarm: _SfxSpec('sfx_base_alarm.ogg', 0.85),
-    SfxEvent.waveClear: _SfxSpec('sfx_wave_clear.ogg', 0.9),
-    SfxEvent.victory: _SfxSpec('sfx_victory.ogg', 1.0),
-    SfxEvent.gameOver: _SfxSpec('sfx_gameover.ogg', 1.0),
-    SfxEvent.uiTap: _SfxSpec('sfx_ui_tap.ogg', 0.55),
+    SfxEvent.playerShoot: _SfxSpec('sfx_shoot_player.wav', 0.55),
+    SfxEvent.enemyShoot: _SfxSpec('sfx_shoot_enemy.wav', 0.38),
+    SfxEvent.brickHit: _SfxSpec('sfx_brick.wav', 0.55),
+    SfxEvent.steelHit: _SfxSpec('sfx_steel.wav', 0.55),
+    SfxEvent.bulletClash: _SfxSpec('sfx_clash.wav', 0.6),
+    SfxEvent.explosion: _SfxSpec('sfx_explosion.wav', 0.85),
+    SfxEvent.bossExplosion: _SfxSpec('sfx_explosion_big.wav', 1.0),
+    SfxEvent.tankSpawn: _SfxSpec('sfx_spawn.wav', 0.5),
+    SfxEvent.powerUpAppear: _SfxSpec('sfx_powerup_appear.wav', 0.5),
+    SfxEvent.powerUpTaken: _SfxSpec('sfx_powerup.wav', 0.8),
+    SfxEvent.upgrade: _SfxSpec('sfx_upgrade.wav', 0.85),
+    SfxEvent.playerHit: _SfxSpec('sfx_player_hit.wav', 0.9),
+    SfxEvent.baseAlarm: _SfxSpec('sfx_base_alarm.wav', 0.85),
+    SfxEvent.waveClear: _SfxSpec('sfx_wave_clear.wav', 0.9),
+    SfxEvent.victory: _SfxSpec('sfx_victory.wav', 1.0),
+    SfxEvent.gameOver: _SfxSpec('sfx_gameover.wav', 1.0),
+    SfxEvent.uiTap: _SfxSpec('sfx_ui_tap.wav', 0.55),
   };
 
   // ── Состояние/настройки ────────────────────────────────────────────────────
