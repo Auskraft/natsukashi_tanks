@@ -4,12 +4,14 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/feedback/haptics.dart';
+import '../logic/level_data.dart';
+import '../logic/level_loader.dart';
+import '../logic/level_model.dart';
 import '../logic/tank_entities.dart';
 import '../logic/tank_geometry.dart';
 import '../logic/tank_grid.dart';
 import '../logic/tank_step.dart';
 import '../logic/tanks_logic.dart';
-import 'demo_level.dart';
 
 /// Фаза партии (управляет показываемым оверлеем).
 enum TanksPhase { ready, running, dead }
@@ -26,6 +28,12 @@ class TanksFlameGame extends FlameGame {
 
   late TanksLogic _logic;
   final Random _rng = Random();
+
+  // Текущий мир/уровень (линейная прогрессия по миру; кампания — фаза 5).
+  final int _worldIndex = 0;
+  int _levelIndex = 0;
+  LevelDef get _level => kWorlds[_worldIndex].levels[_levelIndex];
+  _ThemePalette _palette = _paletteFor(kWorlds.first.theme);
 
   // ── HUD-нотифаеры ──────────────────────────────────────────────────────────
   final ValueNotifier<int> score = ValueNotifier(0);
@@ -67,18 +75,22 @@ class TanksFlameGame extends FlameGame {
 
   @override
   Future<void> onLoad() async {
-    _logic = buildDemoLevel(random: _rng);
+    _logic = buildLevel(_level, random: _rng);
+    _palette = _paletteFor(kWorlds[_worldIndex].theme);
     enemiesLeft.value = _logic.enemiesAlive + _logic.enemiesRemaining;
     await super.onLoad();
   }
 
   // ── Управление состоянием ────────────────────────────────────────────────────
-  void start() {
-    _logic = buildDemoLevel(random: _rng);
+  void start() => _loadLevel();
+
+  void _loadLevel() {
+    _logic = buildLevel(_level, random: _rng);
+    _palette = _paletteFor(kWorlds[_worldIndex].theme);
     score.value = 0;
     lives.value = _logic.lives;
     enemiesLeft.value = _logic.enemiesAlive + _logic.enemiesRemaining;
-    stage.value = 1;
+    stage.value = _levelIndex + 1;
     _moveDir = null;
     _fireHeld = false;
     _sparks.clear();
@@ -101,7 +113,9 @@ class TanksFlameGame extends FlameGame {
   /// Вернуться на стартовый экран (используется кнопкой «В меню», пока нет
   /// домашней витрины из фазы 5). Готовит свежий уровень как фон.
   void toReady() {
-    _logic = buildDemoLevel(random: _rng);
+    _levelIndex = 0;
+    _logic = buildLevel(_level, random: _rng);
+    _palette = _paletteFor(kWorlds[_worldIndex].theme);
     enemiesLeft.value = _logic.enemiesAlive + _logic.enemiesRemaining;
     score.value = 0;
     lives.value = _logic.lives;
@@ -195,8 +209,14 @@ class TanksFlameGame extends FlameGame {
     enemiesLeft.value = _logic.enemiesAlive + _logic.enemiesRemaining;
 
     if (s.gameOver) {
-      onGameOver(_logic.score, _logic.won);
-      phase.value = TanksPhase.dead;
+      final lastIndex = kWorlds[_worldIndex].levels.length - 1;
+      if (s.win && _levelIndex < lastIndex) {
+        _levelIndex++;
+        _loadLevel(); // зачистил — сразу следующий уровень мира
+      } else {
+        onGameOver(_logic.score, _logic.won);
+        phase.value = TanksPhase.dead;
+      }
     }
   }
 
@@ -293,7 +313,7 @@ class TanksFlameGame extends FlameGame {
   void _drawFieldFrame(Canvas canvas) {
     final rect = _origin & Size(_fieldPx, _fieldPx);
     final rr = RRect.fromRectAndRadius(rect, Radius.circular(_u * 2));
-    canvas.drawRRect(rr, Paint()..color = const Color(0xFF120F22));
+    canvas.drawRRect(rr, Paint()..color = _palette.field);
     canvas.drawRRect(
         rr,
         Paint()
@@ -333,10 +353,10 @@ class TanksFlameGame extends FlameGame {
       final qx = i % 2;
       final qy = i ~/ 2;
       final r = Rect.fromLTWH(o.dx + qx * q, o.dy + qy * q, q, q).deflate(0.7);
-      canvas.drawRect(r, Paint()..color = const Color(0xFFB5563C));
+      canvas.drawRect(r, Paint()..color = _palette.brick);
       canvas.drawRect(
           Rect.fromLTWH(r.left, r.top, r.width, r.height * 0.34),
-          Paint()..color = const Color(0xFFD17A55).withValues(alpha: 0.55));
+          Paint()..color = _palette.brickHi.withValues(alpha: 0.55));
     }
   }
 
@@ -589,6 +609,41 @@ class TanksFlameGame extends FlameGame {
         TankKind.boss => const Color(0xFFFF6FAE),
       };
 }
+
+/// Палитра рендера по теме мира (цвета — здесь, в слое отображения).
+class _ThemePalette {
+  const _ThemePalette({
+    required this.brick,
+    required this.brickHi,
+    required this.field,
+  });
+  final Color brick;
+  final Color brickHi;
+  final Color field;
+}
+
+_ThemePalette _paletteFor(TerrainTheme t) => switch (t) {
+      TerrainTheme.courtyard => const _ThemePalette(
+          brick: Color(0xFFB5563C),
+          brickHi: Color(0xFFD17A55),
+          field: Color(0xFF120F22)),
+      TerrainTheme.factory => const _ThemePalette(
+          brick: Color(0xFF9C7A4E),
+          brickHi: Color(0xFFC9A06A),
+          field: Color(0xFF15131F)),
+      TerrainTheme.river => const _ThemePalette(
+          brick: Color(0xFFA85C4A),
+          brickHi: Color(0xFFCE8068),
+          field: Color(0xFF0E1424)),
+      TerrainTheme.grove => const _ThemePalette(
+          brick: Color(0xFF8E6B43),
+          brickHi: Color(0xFFB89160),
+          field: Color(0xFF101A14)),
+      TerrainTheme.proving => const _ThemePalette(
+          brick: Color(0xFF9AA0AE),
+          brickHi: Color(0xFFC7CCD6),
+          field: Color(0xFF12131A)),
+    };
 
 /// Частица «сока»: стартовая точка (пиксели) + накопленное смещение, скорость,
 /// время жизни, цвет.
