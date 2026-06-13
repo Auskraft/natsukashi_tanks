@@ -35,9 +35,13 @@ enum SfxEvent {
 /// (относительный микс, домножается на общий уровень SFX). Частые/тихие
 /// события (выстрел, спавн) приглушены, акценты (взрыв, победа) — громче.
 class _SfxSpec {
-  const _SfxSpec(this.file, this.gain);
+  const _SfxSpec(this.file, this.gain, this.poly);
   final String file;
   final double gain;
+
+  /// Размер пула — сколько копий звука могут играть одновременно (полифония).
+  /// Частым/накладывающимся событиям больше, одиночным стингерам — 1.
+  final int poly;
 }
 
 /// Единая точка управления звуком: зацикленная музыка (через [FlameAudio.bgm]),
@@ -68,23 +72,23 @@ class AudioManager {
   };
 
   static const Map<SfxEvent, _SfxSpec> _sfxSpecs = {
-    SfxEvent.playerShoot: _SfxSpec('sfx_shoot_player.wav', 0.55),
-    SfxEvent.enemyShoot: _SfxSpec('sfx_shoot_enemy.wav', 0.38),
-    SfxEvent.brickHit: _SfxSpec('sfx_brick.wav', 0.55),
-    SfxEvent.steelHit: _SfxSpec('sfx_steel.wav', 0.55),
-    SfxEvent.bulletClash: _SfxSpec('sfx_clash.wav', 0.6),
-    SfxEvent.explosion: _SfxSpec('sfx_explosion.wav', 0.85),
-    SfxEvent.bossExplosion: _SfxSpec('sfx_explosion_big.wav', 1.0),
-    SfxEvent.tankSpawn: _SfxSpec('sfx_spawn.wav', 0.5),
-    SfxEvent.powerUpAppear: _SfxSpec('sfx_powerup_appear.wav', 0.5),
-    SfxEvent.powerUpTaken: _SfxSpec('sfx_powerup.wav', 0.8),
-    SfxEvent.upgrade: _SfxSpec('sfx_upgrade.wav', 0.85),
-    SfxEvent.playerHit: _SfxSpec('sfx_player_hit.wav', 0.9),
-    SfxEvent.baseAlarm: _SfxSpec('sfx_base_alarm.wav', 0.85),
-    SfxEvent.waveClear: _SfxSpec('sfx_wave_clear.wav', 0.9),
-    SfxEvent.victory: _SfxSpec('sfx_victory.wav', 1.0),
-    SfxEvent.gameOver: _SfxSpec('sfx_gameover.wav', 1.0),
-    SfxEvent.uiTap: _SfxSpec('sfx_ui_tap.wav', 0.55),
+    SfxEvent.playerShoot: _SfxSpec('sfx_shoot_player.wav', 0.55, 3),
+    SfxEvent.enemyShoot: _SfxSpec('sfx_shoot_enemy.wav', 0.38, 4),
+    SfxEvent.brickHit: _SfxSpec('sfx_brick.wav', 0.55, 4),
+    SfxEvent.steelHit: _SfxSpec('sfx_steel.wav', 0.55, 3),
+    SfxEvent.bulletClash: _SfxSpec('sfx_clash.wav', 0.6, 3),
+    SfxEvent.explosion: _SfxSpec('sfx_explosion.wav', 0.85, 4),
+    SfxEvent.bossExplosion: _SfxSpec('sfx_explosion_big.wav', 1.0, 1),
+    SfxEvent.tankSpawn: _SfxSpec('sfx_spawn.wav', 0.5, 2),
+    SfxEvent.powerUpAppear: _SfxSpec('sfx_powerup_appear.wav', 0.5, 2),
+    SfxEvent.powerUpTaken: _SfxSpec('sfx_powerup.wav', 0.8, 2),
+    SfxEvent.upgrade: _SfxSpec('sfx_upgrade.wav', 0.85, 1),
+    SfxEvent.playerHit: _SfxSpec('sfx_player_hit.wav', 0.9, 2),
+    SfxEvent.baseAlarm: _SfxSpec('sfx_base_alarm.wav', 0.85, 2),
+    SfxEvent.waveClear: _SfxSpec('sfx_wave_clear.wav', 0.9, 1),
+    SfxEvent.victory: _SfxSpec('sfx_victory.wav', 1.0, 1),
+    SfxEvent.gameOver: _SfxSpec('sfx_gameover.wav', 1.0, 1),
+    SfxEvent.uiTap: _SfxSpec('sfx_ui_tap.wav', 0.55, 2),
   };
 
   // ── Состояние/настройки ────────────────────────────────────────────────────
@@ -92,6 +96,10 @@ class AudioManager {
   double _musicVolume = 0.6;
   double _sfxVolume = 0.85;
   bool _initialized = false;
+
+  /// Пулы предзагруженных плееров на каждый SFX — мгновенный старт без задержки
+  /// (создание/загрузка плеера на каждый звук как раз и давали рассинхрон).
+  final Map<SfxEvent, AudioPool> _pools = {};
 
   MusicTrack? _currentTrack; // желаемая дорожка
   MusicTrack? _startedTrack; // реально запущенная в bgm-плеере
@@ -114,10 +122,25 @@ class AudioManager {
     _sfxVolume = s.audioSfxVolume;
     await _safeAwait(() async {
       await FlameAudio.bgm.initialize();
-      await FlameAudio.audioCache.loadAll([
-        ..._musicFiles.values,
-        ..._sfxSpecs.values.map((e) => e.file),
-      ]);
+      await FlameAudio.audioCache.loadAll(_musicFiles.values.toList());
+    });
+    // Пулы строим в фоне, чтобы не задерживать старт приложения: до готовности
+    // эффект просто молчит, а к началу боя пулы уже прогреты. PlayerMode по
+    // умолчанию = mediaPlayer (плеер сам возвращается в пул по завершении;
+    // lowLatency здесь НЕ рециклит и течёт). На сбой одного клипа остальные
+    // не падают.
+    _safe(() async {
+      await Future.wait(_sfxSpecs.entries.map((e) async {
+        try {
+          _pools[e.key] = await FlameAudio.createPool(
+            e.value.file,
+            minPlayers: 1,
+            maxPlayers: e.value.poly,
+          );
+        } catch (_) {
+          // нет файла — этот эффект просто молчит
+        }
+      }));
     });
   }
 
@@ -177,12 +200,16 @@ class AudioManager {
   }
 
   // ── SFX ──────────────────────────────────────────────────────────────────────
-  /// Сыграть короткий эффект. Дёргается из Flame-слоя на исходы `TankStep`.
+  /// Сыграть короткий эффект из предзагруженного пула (мгновенно).
+  /// Дёргается из Flame-слоя на исходы `TankStep`.
   void play(SfxEvent event) {
     if (_muted || _sfxVolume <= 0) return;
-    final spec = _sfxSpecs[event]!;
-    final vol = (spec.gain * _sfxVolume).clamp(0.0, 1.0);
-    _safe(() => FlameAudio.play(spec.file, volume: vol));
+    final pool = _pools[event];
+    if (pool == null) return; // не инициализирован / нет файла — тихо
+    final vol = (_sfxSpecs[event]!.gain * _sfxVolume).clamp(0.0, 1.0);
+    _safe(() async {
+      await pool.start(volume: vol);
+    });
   }
 
   // ── Настройки (персист в GameStorage) ──────────────────────────────────────
