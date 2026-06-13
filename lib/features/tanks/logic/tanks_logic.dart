@@ -399,6 +399,14 @@ class TanksLogic {
 
   int _enemyMaxBullets(Tank t) => t.kind == TankKind.boss ? 2 : 1;
 
+  /// Биты ближней к пуле половины кирпича (TL=1,TR=2,BL=4,BR=8).
+  int _brickNearBits(Dir d) => switch (d) {
+        Dir.right => 0x5, // левый столбец (TL|BL)
+        Dir.left => 0xA, // правый столбец (TR|BR)
+        Dir.down => 0x3, // верхний ряд (TL|TR)
+        Dir.up => 0xC, // нижний ряд (BL|BR)
+      };
+
   void _spawnBullet(Tank t, TankStep out) {
     const muzzle = TankGeo.tankSize / 2;
     final x = t.cx + t.dir.dx * muzzle;
@@ -477,7 +485,11 @@ class TanksLogic {
     }
     final type = grid.typeAt(tx, ty);
     if (type == TerrainType.brick) {
-      if (grid.chipBrick(fx, fy)) {
+      // Сносим ближнюю к пуле половину тайла (2 квадранта); если она уже дыра —
+      // дальнюю (пуля прошла сквозь пробитое). Удобнее, чем по одной ячейке.
+      final near = _brickNearBits(b.dir);
+      if (grid.chipBrickQuads(tx, ty, near) ||
+          grid.chipBrickQuads(tx, ty, 0xF & ~near)) {
         b.dead = true;
         out.bricksHit.add(BrickHit(_npt(b.x, b.y)));
       }

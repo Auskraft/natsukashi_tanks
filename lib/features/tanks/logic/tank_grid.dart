@@ -102,4 +102,20 @@ class TerrainGrid {
     setTile(tx, ty, TerrainType.empty);
     return true;
   }
+
+  /// Сколоть заданные квадранты кирпича (маска [bits]: TL=1,TR=2,BL=4,BR=8).
+  /// true — что-то сколото (есть пересечение с уцелевшими квадрантами).
+  bool chipBrickQuads(int tx, int ty, int bits) {
+    if (typeAt(tx, ty) != TerrainType.brick) return false;
+    final cur = quadMaskAt(tx, ty);
+    final hit = cur & bits;
+    if (hit == 0) return false;
+    final next = cur & ~hit;
+    if (next == 0) {
+      _tiles[_idx(tx, ty)] = TerrainType.empty.index;
+    } else {
+      _tiles[_idx(tx, ty)] = TerrainType.brick.index | (next << _quadShift);
+    }
+    return true;
+  }
 }
