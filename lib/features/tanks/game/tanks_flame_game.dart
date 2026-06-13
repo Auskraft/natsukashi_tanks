@@ -62,6 +62,7 @@ class TanksFlameGame extends FlameGame {
   final ValueNotifier<int> score = ValueNotifier(0);
   final ValueNotifier<int> lives = ValueNotifier(3);
   final ValueNotifier<int> enemiesLeft = ValueNotifier(0);
+  final ValueNotifier<double> bossHp = ValueNotifier(-1); // -1 = нет босса
   final ValueNotifier<int> stage = ValueNotifier(1);
   final ValueNotifier<double> fps = ValueNotifier(0);
   final ValueNotifier<TanksPhase> phase = ValueNotifier(TanksPhase.ready);
@@ -109,6 +110,7 @@ class TanksFlameGame extends FlameGame {
     score.value = 0;
     lives.value = _logic.lives;
     enemiesLeft.value = _logic.enemiesAlive + _logic.enemiesRemaining;
+    bossHp.value = -1;
     _elapsed = 0;
     _livesLost = 0;
     _moveDir = null;
@@ -228,6 +230,7 @@ class TanksFlameGame extends FlameGame {
       Haptics.heavy();
     }
     enemiesLeft.value = _logic.enemiesAlive + _logic.enemiesRemaining;
+    _updateBossHp();
 
     if (s.gameOver) {
       onResult(TanksResult(
@@ -238,6 +241,16 @@ class TanksFlameGame extends FlameGame {
       ));
       phase.value = TanksPhase.dead;
     }
+  }
+
+  void _updateBossHp() {
+    for (final t in _logic.tanks) {
+      if (t.kind == TankKind.boss && t.alive) {
+        bossHp.value = t.hp / kTankSpecs[TankKind.boss]!.hp;
+        return;
+      }
+    }
+    bossHp.value = -1;
   }
 
   // ── Эффекты ────────────────────────────────────────────────────────────────
@@ -472,7 +485,9 @@ class TanksFlameGame extends FlameGame {
     final fy = t.sy + t.moveAccum * t.dir.dy;
     final o = _px(fx, fy);
     final s = TankGeo.tankSize * _u;
-    final rect = Rect.fromLTWH(o.dx, o.dy, s, s).deflate(s * 0.09);
+    final rect = t.kind == TankKind.boss
+        ? Rect.fromLTWH(o.dx, o.dy, s, s).inflate(s * 0.05)
+        : Rect.fromLTWH(o.dx, o.dy, s, s).deflate(s * 0.09);
     final color = t.isPlayer ? const Color(0xFF4ECDC4) : _kindColor(t.kind);
     final c = rect.center;
 
@@ -532,6 +547,19 @@ class TanksFlameGame extends FlameGame {
             ..strokeWidth = 2
             ..color = const Color(0xFF8AB4FF)
                 .withValues(alpha: 0.45 + 0.35 * sin(_time * 7).abs()));
+    }
+    if (t.kind == TankKind.boss) {
+      // Корона-метка босса над корпусом.
+      final cw = s * 0.46;
+      final top = rect.top - s * 0.04;
+      final crown = Path()
+        ..moveTo(c.dx - cw / 2, top)
+        ..lineTo(c.dx - cw / 4, top - s * 0.16)
+        ..lineTo(c.dx, top - s * 0.02)
+        ..lineTo(c.dx + cw / 4, top - s * 0.16)
+        ..lineTo(c.dx + cw / 2, top)
+        ..close();
+      canvas.drawPath(crown, Paint()..color = const Color(0xFFFFD54F));
     }
   }
 

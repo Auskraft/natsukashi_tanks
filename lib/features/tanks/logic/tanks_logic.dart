@@ -343,9 +343,13 @@ class TanksLogic {
     }
     for (final t in tanks) {
       if (t.isPlayer || !t.alive || t.frozen) continue;
-      if (t.wantsFire && t.fireCooldown <= 0 && _bulletsOf(t.id) < 1) {
+      if (t.wantsFire &&
+          t.fireCooldown <= 0 &&
+          _bulletsOf(t.id) < _enemyMaxBullets(t)) {
         _spawnBullet(t, out);
-        t.fireCooldown = t.spec.fireCooldown;
+        // Босс на низком HP стреляет чаще (фаза ярости).
+        final rage = t.kind == TankKind.boss && t.hp * 2 <= t.spec.hp;
+        t.fireCooldown = t.spec.fireCooldown * (rage ? 0.5 : 1);
       }
     }
   }
@@ -355,11 +359,15 @@ class TanksLogic {
 
   int _maxBullets(Tank t) => (t.isPlayer && t.tier >= 2) ? 2 : 1;
 
+  int _enemyMaxBullets(Tank t) => t.kind == TankKind.boss ? 2 : 1;
+
   void _spawnBullet(Tank t, TankStep out) {
     const muzzle = TankGeo.tankSize / 2;
     final x = t.cx + t.dir.dx * muzzle;
     final y = t.cy + t.dir.dy * muzzle;
-    final power = (t.isPlayer && t.tier >= 3) ? kSteelBreakPower : 1;
+    final power = ((t.isPlayer && t.tier >= 3) || t.kind == TankKind.boss)
+        ? kSteelBreakPower
+        : 1;
     bullets.add(Bullet(
       id: _nextId(),
       ownerId: t.id,

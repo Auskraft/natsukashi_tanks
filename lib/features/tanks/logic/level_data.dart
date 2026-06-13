@@ -4,8 +4,10 @@ import 'tank_entities.dart';
 // Карты 13×13. Легенда: . пусто · B кирпич · S сталь · ~ вода · T лес · I лёд ·
 //   E орёл(база) · 1 спавн игрока (верх-левый угол 2×2) · a точка спавна врага.
 // База: орёл (6,12) в кирпичном кольце (5-7,11 + 5,7,12). Игрок: (3,11).
+// Проходы между препятствиями держим ≥2 тайлов (танк шириной 2).
 
-const String _l1 = '''
+// ── Мир 1 «Двор» (кирпич) ────────────────────────────────────────────────────
+const String _w1l1 = '''
 ......a......
 .............
 .............
@@ -21,7 +23,7 @@ const String _l1 = '''
 .....BEB.....
 ''';
 
-const String _l2 = '''
+const String _w1l2 = '''
 a.....a......
 .............
 ..BBB...BBB..
@@ -37,7 +39,7 @@ a.....a......
 .....BEB.....
 ''';
 
-const String _l3 = '''
+const String _w1l3 = '''
 a.....a....a.
 .............
 .SS.......SS.
@@ -53,7 +55,7 @@ a.....a....a.
 .....BEB.....
 ''';
 
-const String _l4 = '''
+const String _w1l4 = '''
 a.....a....a.
 .............
 .BBB.....BBB.
@@ -69,7 +71,7 @@ a.....a....a.
 .....BEB.....
 ''';
 
-const String _l5 = '''
+const String _w1l5 = '''
 a.....a....a.
 ..B.B.B.B.B..
 .............
@@ -85,7 +87,7 @@ a.....a....a.
 .....BEB.....
 ''';
 
-const String _l6 = '''
+const String _w1l6 = '''
 a.....a....a.
 .SS.B.B.B.SS.
 .............
@@ -101,94 +103,569 @@ a.....a....a.
 .....BEB.....
 ''';
 
-/// Реестр миров. Фаза 4 — мир 1 «Двор» (тема courtyard, кирпич). Остальные
-/// миры и боссы добавляются в фазе 7.
+const String _w1boss = '''
+a.....a......
+.............
+..BB.....BB..
+.............
+.............
+....B...B....
+.............
+....B...B....
+.............
+..BB.....BB..
+.............
+...1.BBB.....
+.....BEB.....
+''';
+
+// ── Мир 2 «Завод» (сталь) ──────────────────────────────────────────────────
+const String _w2l1 = '''
+......a......
+.............
+.SS.....SS...
+.SS.....SS...
+.............
+.....SS......
+.....SS......
+.............
+.SS.....SS...
+.SS.....SS...
+.............
+...1.BBB.....
+.....BEB.....
+''';
+
+const String _w2l2 = '''
+a.....a......
+.SS.......SS.
+.............
+...SS.SS.....
+.............
+.SS.......SS.
+.............
+...SS.SS.....
+.............
+.SS.......SS.
+.............
+...1.BBB.....
+.....BEB.....
+''';
+
+const String _w2l3 = '''
+a.....a....a.
+.SSS...SSS...
+.S.......S...
+.S.......S...
+.............
+....SSS......
+....SSS......
+.............
+.S.......S...
+.SSS...SSS...
+.............
+...1.BBB.....
+.....BEB.....
+''';
+
+const String _w2boss = '''
+a.....a....a.
+.S.........S.
+.............
+...S.....S...
+.............
+.....SSS.....
+.............
+...S.....S...
+.............
+.S.........S.
+.............
+...1.BBB.....
+.....BEB.....
+''';
+
+// ── Мир 3 «Река» (вода) ────────────────────────────────────────────────────
+const String _w3l1 = '''
+......a......
+.............
+.~~~.....~~~.
+.............
+.....~~~.....
+.............
+.~~~.....~~~.
+.............
+.............
+.............
+.............
+...1.BBB.....
+.....BEB.....
+''';
+
+const String _w3l2 = '''
+a.....a......
+.............
+~~~..B..~~~..
+.............
+....~~.~~....
+.............
+~~~..B..~~~..
+.............
+....~~.~~....
+.............
+.............
+...1.BBB.....
+.....BEB.....
+''';
+
+const String _w3l3 = '''
+a.....a....a.
+.............
+~~~..~~~..~~.
+.............
+.....BBB.....
+.............
+~~~..~~~..~~.
+.............
+.....BBB.....
+.............
+.............
+...1.BBB.....
+.....BEB.....
+''';
+
+const String _w3boss = '''
+a.....a....a.
+.............
+.~~~.....~~~.
+.............
+.............
+....~~~~~....
+.............
+.............
+.~~~.....~~~.
+.............
+.............
+...1.BBB.....
+.....BEB.....
+''';
+
+// ── Мир 4 «Роща» (лес — укрытия и засады) ──────────────────────────────────
+const String _w4l1 = '''
+......a......
+.............
+.TTT.....TTT.
+.TTT.....TTT.
+.............
+.....TTT.....
+.............
+.TTT.....TTT.
+.TTT.....TTT.
+.............
+.............
+...1.BBB.....
+.....BEB.....
+''';
+
+const String _w4l2 = '''
+a.....a......
+.TT...TT...TT
+.............
+...TTT.TTT...
+.............
+.TT...TT...TT
+.............
+...TTT.TTT...
+.............
+.TT...TT...TT
+.............
+...1.BBB.....
+.....BEB.....
+''';
+
+const String _w4l3 = '''
+a.....a....a.
+.TTT...TTT...
+.T.B...B.T...
+.............
+..TT.TTT.TT..
+.............
+..TT.TTT.TT..
+.............
+.T.B...B.T...
+.TTT...TTT...
+.............
+...1.BBB.....
+.....BEB.....
+''';
+
+const String _w4boss = '''
+a.....a....a.
+.TT.......TT.
+.............
+....TTT......
+....TTT......
+.............
+......TTT....
+......TTT....
+.............
+.TT.......TT.
+.............
+...1.BBB.....
+.....BEB.....
+''';
+
+// ── Мир 5 «Полигон» (лёд + всё вместе) ─────────────────────────────────────
+const String _w5l1 = '''
+......a......
+.II.......II.
+.II.......II.
+.............
+....SS.SS....
+.....BB......
+.............
+.~~.......~~.
+.II.......II.
+.............
+.............
+...1.BBB.....
+.....BEB.....
+''';
+
+const String _w5l2 = '''
+a.....a....a.
+.II.SS.SS.II.
+.............
+.S.II...II.S.
+.............
+....~~~~~....
+.............
+.S.II...II.S.
+.............
+.II.SS.SS.II.
+.............
+...1.BBB.....
+.....BEB.....
+''';
+
+const String _w5l3 = '''
+a.....a....a.
+.SS.II.II.SS.
+.............
+.II.S...S.II.
+.............
+.~~..BBB..~~.
+.............
+.II.S...S.II.
+.............
+.SS.II.II.SS.
+.............
+...1.BBB.....
+.....BEB.....
+''';
+
+const String _w5boss = '''
+a.....a....a.
+.S.II...II.S.
+.............
+.II.......II.
+.............
+....SSSSS....
+....S...S....
+.............
+.II.......II.
+.............
+.S.II...II.S.
+...1.BBB.....
+.....BEB.....
+''';
+
+/// Реестр миров: 5 миров с боссами-финалами. Звук — отдельной фазой.
 const List<WorldDef> kWorlds = [
   WorldDef(
     title: 'Двор',
     theme: TerrainTheme.courtyard,
     levels: [
       LevelDef(
-        name: '1 · Первый бой',
-        map: _l1,
-        roster: [TankKind.basic, TankKind.basic, TankKind.basic],
-        maxConcurrent: 2,
-        objective: StarObjective(parTimeSec: 40),
-      ),
+          name: '1 · Первый бой',
+          map: _w1l1,
+          roster: [TankKind.basic, TankKind.basic, TankKind.basic],
+          maxConcurrent: 2,
+          objective: StarObjective(parTimeSec: 40)),
       LevelDef(
-        name: '2 · Дворы',
-        map: _l2,
-        roster: [
-          TankKind.basic,
-          TankKind.basic,
-          TankKind.fast,
-          TankKind.basic,
-          TankKind.basic,
-        ],
-        maxConcurrent: 3,
-        objective: StarObjective(parTimeSec: 55),
-      ),
+          name: '2 · Дворы',
+          map: _w1l2,
+          roster: [
+            TankKind.basic,
+            TankKind.basic,
+            TankKind.fast,
+            TankKind.basic,
+            TankKind.basic
+          ],
+          maxConcurrent: 3,
+          objective: StarObjective(parTimeSec: 55)),
       LevelDef(
-        name: '3 · Коридоры',
-        map: _l3,
-        roster: [
-          TankKind.basic,
-          TankKind.fast,
-          TankKind.basic,
-          TankKind.power,
-          TankKind.fast,
-          TankKind.basic,
-        ],
-        maxConcurrent: 3,
-        objective: StarObjective(parTimeSec: 70),
-      ),
+          name: '3 · Коридоры',
+          map: _w1l3,
+          roster: [
+            TankKind.basic,
+            TankKind.fast,
+            TankKind.basic,
+            TankKind.power,
+            TankKind.fast,
+            TankKind.basic
+          ],
+          maxConcurrent: 3,
+          objective: StarObjective(parTimeSec: 70)),
       LevelDef(
-        name: '4 · Завалы',
-        map: _l4,
-        roster: [
-          TankKind.basic,
-          TankKind.fast,
-          TankKind.power,
-          TankKind.basic,
-          TankKind.fast,
-          TankKind.armor,
-          TankKind.basic,
-        ],
-        maxConcurrent: 4,
-        objective: StarObjective(parTimeSec: 85),
-      ),
+          name: '4 · Завалы',
+          map: _w1l4,
+          roster: [
+            TankKind.basic,
+            TankKind.fast,
+            TankKind.power,
+            TankKind.basic,
+            TankKind.fast,
+            TankKind.armor,
+            TankKind.basic
+          ],
+          maxConcurrent: 4,
+          objective: StarObjective(parTimeSec: 85)),
       LevelDef(
-        name: '5 · Теснина',
-        map: _l5,
-        roster: [
-          TankKind.fast,
-          TankKind.basic,
-          TankKind.power,
-          TankKind.armor,
-          TankKind.fast,
-          TankKind.basic,
-          TankKind.power,
-          TankKind.basic,
-        ],
-        maxConcurrent: 4,
-        objective: StarObjective(parTimeSec: 100),
-      ),
+          name: '5 · Теснина',
+          map: _w1l5,
+          roster: [
+            TankKind.fast,
+            TankKind.basic,
+            TankKind.power,
+            TankKind.armor,
+            TankKind.fast,
+            TankKind.basic,
+            TankKind.power,
+            TankKind.basic
+          ],
+          maxConcurrent: 4,
+          objective: StarObjective(parTimeSec: 100)),
       LevelDef(
-        name: '6 · Рубеж',
-        map: _l6,
-        roster: [
-          TankKind.armor,
-          TankKind.power,
-          TankKind.fast,
-          TankKind.basic,
-          TankKind.power,
-          TankKind.fast,
-          TankKind.armor,
-          TankKind.basic,
-        ],
-        maxConcurrent: 4,
-        objective: StarObjective(parTimeSec: 120),
-      ),
+          name: '6 · Рубеж',
+          map: _w1l6,
+          roster: [
+            TankKind.armor,
+            TankKind.power,
+            TankKind.fast,
+            TankKind.basic,
+            TankKind.power,
+            TankKind.fast,
+            TankKind.armor,
+            TankKind.basic
+          ],
+          maxConcurrent: 4,
+          objective: StarObjective(parTimeSec: 120)),
+      LevelDef(
+          name: '7 · Командир ★',
+          map: _w1boss,
+          roster: [TankKind.boss, TankKind.basic, TankKind.fast],
+          maxConcurrent: 3,
+          isBoss: true,
+          objective: StarObjective(parTimeSec: 100)),
+    ],
+  ),
+  WorldDef(
+    title: 'Завод',
+    theme: TerrainTheme.factory,
+    levels: [
+      LevelDef(
+          name: '1 · Цех',
+          map: _w2l1,
+          roster: [
+            TankKind.basic,
+            TankKind.basic,
+            TankKind.fast,
+            TankKind.basic
+          ],
+          maxConcurrent: 3,
+          objective: StarObjective(parTimeSec: 50)),
+      LevelDef(
+          name: '2 · Конвейер',
+          map: _w2l2,
+          roster: [
+            TankKind.basic,
+            TankKind.fast,
+            TankKind.power,
+            TankKind.fast,
+            TankKind.basic
+          ],
+          maxConcurrent: 3,
+          objective: StarObjective(parTimeSec: 60)),
+      LevelDef(
+          name: '3 · Литейная',
+          map: _w2l3,
+          roster: [
+            TankKind.fast,
+            TankKind.power,
+            TankKind.basic,
+            TankKind.armor,
+            TankKind.fast,
+            TankKind.basic
+          ],
+          maxConcurrent: 3,
+          objective: StarObjective(parTimeSec: 75)),
+      LevelDef(
+          name: '4 · Бригадир ★',
+          map: _w2boss,
+          roster: [TankKind.boss, TankKind.fast, TankKind.power],
+          maxConcurrent: 3,
+          isBoss: true,
+          objective: StarObjective(parTimeSec: 95)),
+    ],
+  ),
+  WorldDef(
+    title: 'Река',
+    theme: TerrainTheme.river,
+    levels: [
+      LevelDef(
+          name: '1 · Брод',
+          map: _w3l1,
+          roster: [
+            TankKind.basic,
+            TankKind.basic,
+            TankKind.fast,
+            TankKind.basic
+          ],
+          maxConcurrent: 3,
+          objective: StarObjective(parTimeSec: 55)),
+      LevelDef(
+          name: '2 · Протоки',
+          map: _w3l2,
+          roster: [
+            TankKind.fast,
+            TankKind.basic,
+            TankKind.power,
+            TankKind.fast,
+            TankKind.basic
+          ],
+          maxConcurrent: 3,
+          objective: StarObjective(parTimeSec: 65)),
+      LevelDef(
+          name: '3 · Мосты',
+          map: _w3l3,
+          roster: [
+            TankKind.power,
+            TankKind.fast,
+            TankKind.armor,
+            TankKind.basic,
+            TankKind.fast,
+            TankKind.power
+          ],
+          maxConcurrent: 3,
+          objective: StarObjective(parTimeSec: 75)),
+      LevelDef(
+          name: '4 · Понтонёр ★',
+          map: _w3boss,
+          roster: [TankKind.boss, TankKind.fast, TankKind.fast],
+          maxConcurrent: 3,
+          isBoss: true,
+          objective: StarObjective(parTimeSec: 95)),
+    ],
+  ),
+  WorldDef(
+    title: 'Роща',
+    theme: TerrainTheme.grove,
+    levels: [
+      LevelDef(
+          name: '1 · Опушка',
+          map: _w4l1,
+          roster: [
+            TankKind.fast,
+            TankKind.basic,
+            TankKind.fast,
+            TankKind.power
+          ],
+          maxConcurrent: 3,
+          objective: StarObjective(parTimeSec: 55)),
+      LevelDef(
+          name: '2 · Чаща',
+          map: _w4l2,
+          roster: [
+            TankKind.power,
+            TankKind.fast,
+            TankKind.basic,
+            TankKind.fast,
+            TankKind.power
+          ],
+          maxConcurrent: 3,
+          objective: StarObjective(parTimeSec: 65)),
+      LevelDef(
+          name: '3 · Засада',
+          map: _w4l3,
+          roster: [
+            TankKind.armor,
+            TankKind.fast,
+            TankKind.power,
+            TankKind.basic,
+            TankKind.fast,
+            TankKind.power
+          ],
+          maxConcurrent: 4,
+          objective: StarObjective(parTimeSec: 75)),
+      LevelDef(
+          name: '4 · Лесник ★',
+          map: _w4boss,
+          roster: [TankKind.boss, TankKind.fast, TankKind.power],
+          maxConcurrent: 3,
+          isBoss: true,
+          objective: StarObjective(parTimeSec: 95)),
+    ],
+  ),
+  WorldDef(
+    title: 'Полигон',
+    theme: TerrainTheme.proving,
+    levels: [
+      LevelDef(
+          name: '1 · Лёд',
+          map: _w5l1,
+          roster: [
+            TankKind.fast,
+            TankKind.power,
+            TankKind.basic,
+            TankKind.armor,
+            TankKind.fast
+          ],
+          maxConcurrent: 4,
+          objective: StarObjective(parTimeSec: 60)),
+      LevelDef(
+          name: '2 · Перекрёстки',
+          map: _w5l2,
+          roster: [
+            TankKind.power,
+            TankKind.armor,
+            TankKind.fast,
+            TankKind.power,
+            TankKind.armor,
+            TankKind.fast
+          ],
+          maxConcurrent: 4,
+          objective: StarObjective(parTimeSec: 75)),
+      LevelDef(
+          name: '3 · Мясорубка',
+          map: _w5l3,
+          roster: [
+            TankKind.armor,
+            TankKind.power,
+            TankKind.fast,
+            TankKind.armor,
+            TankKind.power,
+            TankKind.fast,
+            TankKind.basic
+          ],
+          maxConcurrent: 4,
+          objective: StarObjective(parTimeSec: 90)),
+      LevelDef(
+          name: '4 · Финал ★',
+          map: _w5boss,
+          roster: [TankKind.boss, TankKind.armor, TankKind.fast],
+          maxConcurrent: 3,
+          isBoss: true,
+          objective: StarObjective(parTimeSec: 120)),
     ],
   ),
 ];

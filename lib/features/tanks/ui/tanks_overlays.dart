@@ -15,33 +15,42 @@ class TanksHud extends StatelessWidget {
       bottom: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(18, 10, 18, 0),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Column(
           children: [
-            ValueListenableBuilder<int>(
-              valueListenable: game.score,
-              builder: (_, v, _) => StatBlock(label: 'СЧЁТ', value: '$v'),
-            ),
-            const Spacer(),
-            ValueListenableBuilder<int>(
-              valueListenable: game.enemiesLeft,
-              builder: (_, v, _) => StatBlock(
-                label: 'ВРАГИ',
-                value: '$v',
-                color: const Color(0xFFFF8A8A),
-              ),
-            ),
-            const Spacer(),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 ValueListenableBuilder<int>(
-                  valueListenable: game.lives,
-                  builder: (_, v, _) => _Hearts(lives: v),
+                  valueListenable: game.score,
+                  builder: (_, v, _) => StatBlock(label: 'СЧЁТ', value: '$v'),
                 ),
-                const SizedBox(height: 8),
-                PauseButton(onTap: game.togglePause),
+                const Spacer(),
+                ValueListenableBuilder<int>(
+                  valueListenable: game.enemiesLeft,
+                  builder: (_, v, _) => StatBlock(
+                    label: 'ВРАГИ',
+                    value: '$v',
+                    color: const Color(0xFFFF8A8A),
+                  ),
+                ),
+                const Spacer(),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    ValueListenableBuilder<int>(
+                      valueListenable: game.lives,
+                      builder: (_, v, _) => _Hearts(lives: v),
+                    ),
+                    const SizedBox(height: 8),
+                    PauseButton(onTap: game.togglePause),
+                  ],
+                ),
               ],
+            ),
+            ValueListenableBuilder<double>(
+              valueListenable: game.bossHp,
+              builder: (_, hp, _) =>
+                  hp < 0 ? const SizedBox.shrink() : _BossBar(fraction: hp),
             ),
           ],
         ),
@@ -159,6 +168,42 @@ class _StarsRow extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// Полоса здоровья босса (показывается в HUD, когда на поле есть босс).
+class _BossBar extends StatelessWidget {
+  const _BossBar({required this.fraction});
+
+  final double fraction;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('БОСС',
+              style: TextStyle(
+                color: Color(0xFFFF6FAE),
+                fontSize: 11,
+                letterSpacing: 2,
+                fontWeight: FontWeight.w800,
+              )),
+          const SizedBox(height: 4),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: fraction.clamp(0.0, 1.0),
+              minHeight: 8,
+              backgroundColor: Colors.white.withValues(alpha: 0.12),
+              valueColor: const AlwaysStoppedAnimation(Color(0xFFFF6FAE)),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

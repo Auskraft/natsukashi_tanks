@@ -18,7 +18,10 @@ void main() {
           count++;
         }
       }
-      expect(count, 6);
+      final expected =
+          kWorlds.fold<int>(0, (a, w) => a + w.levels.length);
+      expect(count, expected);
+      expect(count, greaterThanOrEqualTo(20));
     });
 
     test('buildLevel собирает играбельную логику; игрок не в стене', () {
