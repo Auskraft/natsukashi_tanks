@@ -80,6 +80,37 @@ class GameStorage {
     await _prefs.setString('last_played', today);
   }
 
+  // ── Танчики: звёзды кампании / ежедневный вызов / хаптика ──────────────────
+
+  /// Звёзды за уровень кампании (0..3).
+  int levelStars(int world, int level) =>
+      _prefs.getInt('tanks_stars_${world}_$level') ?? 0;
+
+  /// Сохранить звёзды, если их больше прежнего рекорда уровня.
+  Future<void> setLevelStars(int world, int level, int stars) async {
+    if (stars > levelStars(world, level)) {
+      await _prefs.setInt('tanks_stars_${world}_$level', stars);
+    }
+  }
+
+  /// Пройден ли ежедневный вызов в эту дату.
+  bool dailyDone(DateTime now) =>
+      _prefs.getBool('tanks_daily_${_dateKey(now)}') ?? false;
+
+  Future<void> markDailyDone(DateTime now) =>
+      _prefs.setBool('tanks_daily_${_dateKey(now)}', true);
+
+  int get dailyBest => _prefs.getInt('tanks_daily_best') ?? 0;
+
+  Future<void> submitDailyScore(int score) async {
+    if (score > dailyBest) await _prefs.setInt('tanks_daily_best', score);
+  }
+
+  /// Хаптика включена (по умолчанию да).
+  bool get hapticsOn => _prefs.getBool('haptics_on') ?? true;
+
+  Future<void> setHaptics(bool on) => _prefs.setBool('haptics_on', on);
+
   static String _dateKey(DateTime d) =>
       '${d.year}-${d.month.toString().padLeft(2, '0')}-'
       '${d.day.toString().padLeft(2, '0')}';

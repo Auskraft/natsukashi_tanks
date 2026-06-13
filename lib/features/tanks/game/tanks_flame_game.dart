@@ -4,8 +4,6 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/feedback/haptics.dart';
-import '../logic/level_data.dart';
-import '../logic/level_loader.dart';
 import '../logic/level_model.dart';
 import '../logic/tank_entities.dart';
 import '../logic/tank_geometry.dart';
@@ -16,24 +14,49 @@ import '../logic/tanks_logic.dart';
 /// Фаза партии (управляет показываемым оверлеем).
 enum TanksPhase { ready, running, dead }
 
+/// Итог партии — для рекордов/звёзд/оверлея.
+class TanksResult {
+  const TanksResult({
+    required this.win,
+    required this.score,
+    required this.elapsed,
+    required this.livesLost,
+  });
+
+  final bool win;
+  final int score;
+  final double elapsed;
+  final int livesLost;
+}
+
 /// Flame-слой «Танчиков»: гоняет [TanksLogic] и рисует поле/танки/пули с «соком».
 /// Вся симуляция — в чистой логике; здесь только тайминг, ввод, рендер и фидбек.
 ///
 /// ВАЖНО: нотифаер паузы — [isPaused] (не `paused`: конфликт с `FlameGame.paused`).
 class TanksFlameGame extends FlameGame {
-  TanksFlameGame({required this.onGameOver});
+  TanksFlameGame({
+    required this.build,
+    required this.theme,
+    required this.onResult,
+  });
 
-  /// Вызывается при конце партии: счёт и победа/поражение (для рекордов/оверлея).
-  final void Function(int score, bool win) onGameOver;
+  /// Строит свежую партию (уровень кампании / выживание / вызов дня).
+  final TanksLogic Function() build;
+
+  /// Тема мира для палитры рендера.
+  final TerrainTheme theme;
+
+  /// Конец партии — результат (рекорды/звёзды/оверлей).
+  final void Function(TanksResult result) onResult;
 
   late TanksLogic _logic;
   final Random _rng = Random();
 
-  // Текущий мир/уровень (линейная прогрессия по миру; кампания — фаза 5).
-  final int _worldIndex = 0;
-  int _levelIndex = 0;
-  LevelDef get _level => kWorlds[_worldIndex].levels[_levelIndex];
-  _ThemePalette _palette = _paletteFor(kWorlds.first.theme);
+  late final _ThemePalette _palette = _paletteFor(theme);
+
+  // Метрики партии (для звёзд кампании).
+  double _elapsed = 0;
+  int _livesLost = 0;
 
   // ── HUD-нотифаеры ──────────────────────────────────────────────────────────
   final ValueNotifier<int> score = ValueNotifier(0);
@@ -75,22 +98,19 @@ class TanksFlameGame extends FlameGame {
 
   @override
   Future<void> onLoad() async {
-    _logic = buildLevel(_level, random: _rng);
-    _palette = _paletteFor(kWorlds[_worldIndex].theme);
+    _logic = build();
     enemiesLeft.value = _logic.enemiesAlive + _logic.enemiesRemaining;
     await super.onLoad();
   }
 
   // ── Управление состоянием ────────────────────────────────────────────────────
-  void start() => _loadLevel();
-
-  void _loadLevel() {
-    _logic = buildLevel(_level, random: _rng);
-    _palette = _paletteFor(kWorlds[_worldIndex].theme);
+  void start() {
+    _logic = build();
     score.value = 0;
     lives.value = _logic.lives;
     enemiesLeft.value = _logic.enemiesAlive + _logic.enemiesRemaining;
-    stage.value = _levelIndex + 1;
+    _elapsed = 0;
+    _livesLost = 0;
     _moveDir = null;
     _fireHeld = false;
     _sparks.clear();
@@ -113,9 +133,7 @@ class TanksFlameGame extends FlameGame {
   /// Вернуться на стартовый экран (используется кнопкой «В меню», пока нет
   /// домашней витрины из фазы 5). Готовит свежий уровень как фон.
   void toReady() {
-    _levelIndex = 0;
-    _logic = buildLevel(_level, random: _rng);
-    _palette = _paletteFor(kWorlds[_worldIndex].theme);
+    _logic = build();
     enemiesLeft.value = _logic.enemiesAlive + _logic.enemiesRemaining;
     score.value = 0;
     lives.value = _logic.lives;
@@ -147,7 +165,9 @@ class TanksFlameGame extends FlameGame {
     if (!_active) return;
 
     final clamped = dt > 0.05 ? 0.05 : dt;
-    final res = _logic.step(clamped, PlayerIntent(move: _moveDir, fire: _fireHeld));
+    _elapsed += clamped;
+    final res =
+        _logic.step(clamped, PlayerIntent(move: _moveDir, fire: _fireHeld));
     _applyStep(res);
   }
 
@@ -189,6 +209,7 @@ class TanksFlameGame extends FlameGame {
     if (s.gainedScore > 0) score.value = _logic.score;
     if (s.playerHit) {
       lives.value = _logic.lives;
+      _livesLost++;
       _shake = max(_shake, 0.7);
       _flash = max(_flash, 0.5);
       _flashColor = const Color(0xFFFF5370);
@@ -209,14 +230,13 @@ class TanksFlameGame extends FlameGame {
     enemiesLeft.value = _logic.enemiesAlive + _logic.enemiesRemaining;
 
     if (s.gameOver) {
-      final lastIndex = kWorlds[_worldIndex].levels.length - 1;
-      if (s.win && _levelIndex < lastIndex) {
-        _levelIndex++;
-        _loadLevel(); // зачистил — сразу следующий уровень мира
-      } else {
-        onGameOver(_logic.score, _logic.won);
-        phase.value = TanksPhase.dead;
-      }
+      onResult(TanksResult(
+        win: _logic.won,
+        score: _logic.score,
+        elapsed: _elapsed,
+        livesLost: _livesLost,
+      ));
+      phase.value = TanksPhase.dead;
     }
   }
 

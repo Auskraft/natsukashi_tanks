@@ -3,16 +3,16 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 
+import 'core/feedback/haptics.dart';
 import 'core/legal/legal_screens.dart';
 import 'core/storage/game_storage.dart';
 import 'core/theme/app_theme.dart';
-import 'features/tanks/app/tanks_game_screen.dart';
+import 'features/tanks/app/tanks_home_screen.dart';
 
 /// Точка входа **отдельного приложения «Танчики»** (отдельный проект).
 ///
-/// Запуск в разработке: `flutter run -t lib/main.dart`.
-/// На фазе 2 бутит сразу в бой (демо-уровень); домашняя витрина с режимами
-/// (Кампания/Выживание/Дейли) появится в фазе 5.
+/// Запуск: `flutter run`. Бутит в домашнюю витрину: Кампания / Выживание /
+/// Вызов дня / Настройки / Документы.
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -22,6 +22,7 @@ Future<void> main() async {
     _enableHighRefreshRate(),
     Future<void>.delayed(const Duration(milliseconds: 1200)),
   ]);
+  Haptics.enabled = GameStorage.instance.hapticsOn;
 
   runApp(const TanksApp());
 }
@@ -79,7 +80,7 @@ class _TanksAppState extends State<TanksApp> {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.night,
       home: _consent
-          ? const TanksGameScreen()
+          ? const TanksHomeScreen()
           : ConsentScreen(onAccept: _acceptConsent),
     );
   }

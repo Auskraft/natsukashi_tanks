@@ -7,60 +7,97 @@ import '../../../core/components/dpad_control.dart';
 import '../../../core/components/overlay_kit.dart';
 import '../../../core/storage/game_storage.dart';
 import '../game/tanks_flame_game.dart';
+import '../logic/level_model.dart';
 import '../logic/tank_entities.dart';
+import '../logic/tanks_logic.dart';
 import '../ui/tanks_overlays.dart';
 
-/// Экран-хост боя «Танчиков»: держит [TanksFlameGame], рисует поверх него
-/// оверлей по фазе/паузе и панель управления (D-pad + огонь). Рекорд/стрик
-/// пишутся в [GameStorage]. На фазе 2 уровень — демо (буферный, до парсера).
+/// Режим запуска боя.
+enum TanksMode { campaign, survival, daily }
+
+/// Экран-хост боя: держит [TanksFlameGame] (строит партию через [build]), рисует
+/// оверлеи по фазе/паузе, D-pad + огонь, и сохраняет результат под режим
+/// (звёзды кампании / рекорд выживания / отметку и рекорд дня).
 class TanksGameScreen extends StatefulWidget {
-  const TanksGameScreen({super.key});
+  const TanksGameScreen({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.mode,
+    required this.theme,
+    required this.build,
+    this.objective,
+    this.onStarsEarned,
+  });
+
+  final String title;
+  final String subtitle;
+  final TanksMode mode;
+  final TerrainTheme theme;
+  final TanksLogic Function() build;
+
+  /// Кампания: цель для расчёта звёзд.
+  final StarObjective? objective;
+
+  /// Кампания: сохранить заработанные звёзды (вызывается при победе).
+  final void Function(int stars)? onStarsEarned;
 
   @override
   State<TanksGameScreen> createState() => _TanksGameScreenState();
 }
 
 class _TanksGameScreenState extends State<TanksGameScreen> {
-  static const _gameId = 'tanks_campaign';
-
   late final TanksFlameGame _game;
-  late int _best;
-  int _lastScore = 0;
-  bool _isRecord = false;
+  TanksResult? _result;
+  int _stars = 0;
+  int _best = 0;
 
   @override
   void initState() {
     super.initState();
-    _best = GameStorage.instance.highScore(_gameId);
-    _game = TanksFlameGame(onGameOver: _handleGameOver);
+    _best = _loadBest();
+    _game = TanksFlameGame(
+      build: widget.build,
+      theme: widget.theme,
+      onResult: _onResult,
+    );
   }
 
-  @override
-  void dispose() {
-    final s = _game.score.value;
-    if (s > 0) {
-      unawaited(GameStorage.instance.submitScore(_gameId, s));
-      unawaited(GameStorage.instance.registerPlay(DateTime.now()));
+  int _loadBest() {
+    final s = GameStorage.instance;
+    return switch (widget.mode) {
+      TanksMode.survival => s.highScore('tanks_survival'),
+      TanksMode.daily => s.dailyBest,
+      TanksMode.campaign => 0,
+    };
+  }
+
+  void _startRun() {
+    unawaited(GameStorage.instance.registerPlay(DateTime.now()));
+    _game.start();
+  }
+
+  void _onResult(TanksResult r) {
+    final s = GameStorage.instance;
+    switch (widget.mode) {
+      case TanksMode.campaign:
+        _stars = r.win
+            ? (widget.objective
+                    ?.evaluate(elapsed: r.elapsed, livesLost: r.livesLost) ??
+                1)
+            : 0;
+        if (r.win && _stars > 0) widget.onStarsEarned?.call(_stars);
+      case TanksMode.survival:
+        unawaited(s.submitScore('tanks_survival', r.score));
+        if (r.score > _best) _best = r.score;
+      case TanksMode.daily:
+        unawaited(s.markDailyDone(DateTime.now()));
+        unawaited(s.submitDailyScore(r.score));
+        if (r.score > _best) _best = r.score;
     }
-    super.dispose();
+    setState(() => _result = r);
   }
 
-  void _handleGameOver(int score, bool win) {
-    final storage = GameStorage.instance;
-    final prevBest = storage.highScore(_gameId);
-    final record = score > prevBest;
-    setState(() {
-      _lastScore = score;
-      _isRecord = record;
-      _best = record ? score : prevBest;
-    });
-    unawaited(storage.submitScore(_gameId, score));
-    unawaited(storage.registerPlay(DateTime.now()));
-  }
-
-  /// Выход «в меню». Пока (фазы 2–3) игра — корневой экран, и popать некуда
-  /// (это давало чёрный экран), поэтому возвращаемся на стартовый экран игры.
-  /// В фазе 5, когда появится домашняя витрина, pop вернёт на неё.
   void _exit() {
     final nav = Navigator.of(context);
     if (nav.canPop()) {
@@ -91,7 +128,7 @@ class _TanksGameScreenState extends State<TanksGameScreen> {
                 if (_game.isPaused.value) {
                   return PausePanel(
                     onResume: _game.togglePause,
-                    onRestart: _game.start,
+                    onRestart: _startRun,
                     onExit: _exit,
                   );
                 }
@@ -99,10 +136,9 @@ class _TanksGameScreenState extends State<TanksGameScreen> {
                   case TanksPhase.ready:
                     return ReadyPanel(
                       emoji: '🪖',
-                      title: 'Танчики',
-                      subtitle:
-                          'Веди крестом • кнопка — огонь • защити базу и зачисти врагов',
-                      onStart: _game.start,
+                      title: widget.title,
+                      subtitle: widget.subtitle,
+                      onStart: _startRun,
                     );
                   case TanksPhase.running:
                     return Stack(
@@ -121,11 +157,16 @@ class _TanksGameScreenState extends State<TanksGameScreen> {
                       ],
                     );
                   case TanksPhase.dead:
-                    return GameOverPanel(
-                      score: _lastScore,
-                      best: _best,
-                      isRecord: _isRecord,
-                      onRetry: _game.start,
+                    final r = _result;
+                    final win = r?.win ?? false;
+                    return TanksResultPanel(
+                      win: win,
+                      score: r?.score ?? 0,
+                      stars: widget.mode == TanksMode.campaign && win
+                          ? _stars
+                          : null,
+                      best: widget.mode == TanksMode.campaign ? null : _best,
+                      onRetry: _startRun,
                       onExit: _exit,
                     );
                 }

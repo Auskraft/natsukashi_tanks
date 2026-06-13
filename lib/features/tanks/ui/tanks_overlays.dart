@@ -71,3 +71,94 @@ class _Hearts extends StatelessWidget {
     );
   }
 }
+
+/// Итоговая панель партии: победа/поражение, счёт, звёзды (кампания) либо рекорд.
+class TanksResultPanel extends StatelessWidget {
+  const TanksResultPanel({
+    super.key,
+    required this.win,
+    required this.score,
+    required this.onRetry,
+    required this.onExit,
+    this.stars,
+    this.best,
+  });
+
+  final bool win;
+  final int score;
+  final int? stars;
+  final int? best;
+  final VoidCallback onRetry;
+  final VoidCallback onExit;
+
+  @override
+  Widget build(BuildContext context) {
+    return GameScrim(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(win ? '🏆' : '💥', style: const TextStyle(fontSize: 64)),
+          const SizedBox(height: 8),
+          Text(
+            win ? 'ПОБЕДА!' : 'База потеряна',
+            style: TextStyle(
+              color: win ? const Color(0xFFFFD54F) : const Color(0xFFFF8A8A),
+              fontSize: 26,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1,
+            ),
+          ),
+          if (stars != null) ...[
+            const SizedBox(height: 14),
+            _StarsRow(stars: stars!),
+          ],
+          const SizedBox(height: 18),
+          Text(
+            '$score',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 56,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          if (best != null)
+            Text('рекорд: $best',
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.6))),
+          const SizedBox(height: 24),
+          PlayButton(label: 'ЕЩЁ РАЗ', onTap: onRetry),
+          TextButton(
+            onPressed: onExit,
+            child: Text('Выход',
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.6))),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StarsRow extends StatelessWidget {
+  const _StarsRow({required this.stars});
+
+  final int stars;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var i = 1; i <= 3; i++)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Icon(
+              i <= stars ? Icons.star_rounded : Icons.star_outline_rounded,
+              color: i <= stars
+                  ? const Color(0xFFFFD54F)
+                  : Colors.white.withValues(alpha: 0.3),
+              size: 40,
+            ),
+          ),
+      ],
+    );
+  }
+}
