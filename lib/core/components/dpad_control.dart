@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
-/// Дискретный 4-направленный D-pad + кнопка огня для аркадных игр (танки).
+/// D-pad + кнопка огня для аркадных игр (танки).
 ///
-/// Не свободный стик: направление фиксируется, пока кнопка зажата, и сбрасывается
-/// при отпускании. Мультитач (держать направление + жать огонь) — через [Listener]
-/// (сырые указатели): D-pad и огонь — две независимые зоны, поэтому одновременное
-/// нажатие работает. Использует [AxisDirection] (тип Flutter), чтобы `core/` не
-/// зависел от фич; экран-хост маппит его в игровое направление.
+/// D-pad — **единая зона со скольжением**: направление определяется положением
+/// пальца относительно центра (доминантная ось), и меняется на лету, если вести
+/// пальцем — не нужно отпускать и попадать в маленькую кнопку. В центре —
+/// мёртвая зона (стоп). Мультитач (держать направление + жать огонь) — две
+/// независимые зоны через [Listener] (сырые указатели). Использует
+/// [AxisDirection] (тип Flutter), чтобы `core/` не зависел от фич; экран-хост
+/// маппит его в игровое направление.
 class DpadControl extends StatefulWidget {
   const DpadControl({
     super.key,
@@ -15,7 +17,7 @@ class DpadControl extends StatefulWidget {
     this.accent = const Color(0xFF4ECDC4),
   });
 
-  /// Текущее зажатое направление (null — отпущено).
+  /// Текущее направление (null — отпущено/стоп).
   final ValueChanged<AxisDirection?> onDirection;
 
   /// Зажата (true) либо отпущена (false) кнопка огня.
@@ -28,19 +30,37 @@ class DpadControl extends StatefulWidget {
 }
 
 class _DpadControlState extends State<DpadControl> {
+  static const double _cell = 56;
+  static const double _pad = _cell * 3;
+
   AxisDirection? _dir;
+  int? _padPointer;
   bool _firing = false;
 
-  void _press(AxisDirection d) {
+  void _setDir(AxisDirection? d) {
     if (_dir == d) return;
     setState(() => _dir = d);
     widget.onDirection(d);
   }
 
-  void _release(AxisDirection d) {
-    if (_dir != d) return;
-    setState(() => _dir = null);
-    widget.onDirection(null);
+  /// Направление по позиции пальца относительно центра пада (с мёртвой зоной).
+  void _updateDir(Offset local) {
+    final dx = local.dx - _pad / 2;
+    final dy = local.dy - _pad / 2;
+    const dead = _pad * 0.15;
+    if (dx * dx + dy * dy < dead * dead) {
+      _setDir(null);
+      return;
+    }
+    _setDir(dx.abs() > dy.abs()
+        ? (dx > 0 ? AxisDirection.right : AxisDirection.left)
+        : (dy > 0 ? AxisDirection.down : AxisDirection.up));
+  }
+
+  void _endPad(int pointer) {
+    if (_padPointer != pointer) return;
+    _padPointer = null;
+    _setDir(null);
   }
 
   void _fire(bool on) {
@@ -52,7 +72,7 @@ class _DpadControlState extends State<DpadControl> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(22, 0, 22, 30),
+      padding: const EdgeInsets.fromLTRB(20, 0, 22, 28),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.end,
@@ -62,58 +82,64 @@ class _DpadControlState extends State<DpadControl> {
   }
 
   Widget _buildDpad() {
-    const cell = 50.0;
-    return SizedBox(
-      width: cell * 3,
-      height: cell * 3,
-      child: Stack(
-        children: [
-          Positioned(
-              left: cell,
-              top: 0,
-              child: _dirButton(AxisDirection.up, Icons.keyboard_arrow_up, cell)),
-          Positioned(
-              left: cell,
-              bottom: 0,
-              child:
-                  _dirButton(AxisDirection.down, Icons.keyboard_arrow_down, cell)),
-          Positioned(
-              left: 0,
-              top: cell,
-              child:
-                  _dirButton(AxisDirection.left, Icons.keyboard_arrow_left, cell)),
-          Positioned(
-              right: 0,
-              top: cell,
-              child: _dirButton(
-                  AxisDirection.right, Icons.keyboard_arrow_right, cell)),
-        ],
+    return Listener(
+      behavior: HitTestBehavior.opaque,
+      onPointerDown: (e) {
+        _padPointer = e.pointer;
+        _updateDir(e.localPosition);
+      },
+      onPointerMove: (e) {
+        if (e.pointer == _padPointer) _updateDir(e.localPosition);
+      },
+      onPointerUp: (e) => _endPad(e.pointer),
+      onPointerCancel: (e) => _endPad(e.pointer),
+      child: SizedBox(
+        width: _pad,
+        height: _pad,
+        child: Stack(
+          children: [
+            Positioned(
+                left: _cell,
+                top: 0,
+                child: _cellView(AxisDirection.up, Icons.keyboard_arrow_up)),
+            Positioned(
+                left: _cell,
+                bottom: 0,
+                child:
+                    _cellView(AxisDirection.down, Icons.keyboard_arrow_down)),
+            Positioned(
+                left: 0,
+                top: _cell,
+                child:
+                    _cellView(AxisDirection.left, Icons.keyboard_arrow_left)),
+            Positioned(
+                right: 0,
+                top: _cell,
+                child:
+                    _cellView(AxisDirection.right, Icons.keyboard_arrow_right)),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _dirButton(AxisDirection d, IconData icon, double size) {
+  /// Чисто визуальная клетка крестовины (ввод — на внешнем [Listener]).
+  Widget _cellView(AxisDirection d, IconData icon) {
     final active = _dir == d;
-    return Listener(
-      behavior: HitTestBehavior.opaque,
-      onPointerDown: (_) => _press(d),
-      onPointerUp: (_) => _release(d),
-      onPointerCancel: (_) => _release(d),
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          color: active
-              ? widget.accent.withValues(alpha: 0.9)
-              : Colors.white.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(13),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-        ),
-        child: Icon(
-          icon,
-          color: active ? Colors.black : Colors.white.withValues(alpha: 0.7),
-          size: 30,
-        ),
+    return Container(
+      width: _cell,
+      height: _cell,
+      decoration: BoxDecoration(
+        color: active
+            ? widget.accent.withValues(alpha: 0.9)
+            : Colors.white.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+      ),
+      child: Icon(
+        icon,
+        color: active ? Colors.black : Colors.white.withValues(alpha: 0.7),
+        size: 32,
       ),
     );
   }
@@ -128,15 +154,16 @@ class _DpadControlState extends State<DpadControl> {
         scale: _firing ? 0.92 : 1,
         duration: const Duration(milliseconds: 80),
         child: Container(
-          width: 86,
-          height: 86,
+          width: 88,
+          height: 88,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: LinearGradient(
               colors: [widget.accent, const Color(0xFF7C5CFF)],
             ),
             boxShadow: [
-              BoxShadow(color: widget.accent.withValues(alpha: 0.5), blurRadius: 18),
+              BoxShadow(
+                  color: widget.accent.withValues(alpha: 0.5), blurRadius: 18),
             ],
           ),
           child: const Icon(Icons.bolt, color: Colors.white, size: 42),
