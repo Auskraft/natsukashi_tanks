@@ -531,11 +531,11 @@ class TanksFlameGame extends FlameGame {
     // Ствол (тоньше и короче).
     final dir = Offset(t.dir.dx.toDouble(), t.dir.dy.toDouble());
     canvas.drawLine(
-        c,
-        c + dir * (s * 0.42),
+        c + dir * (s * 0.12),
+        c + dir * (s * 0.40),
         Paint()
-          ..color = Colors.white.withValues(alpha: 0.9)
-          ..strokeWidth = s * 0.085
+          ..color = Colors.white.withValues(alpha: 0.82)
+          ..strokeWidth = s * 0.09
           ..strokeCap = StrokeCap.round);
     // Щит.
     if (t.shielded) {

@@ -222,8 +222,11 @@ class TanksLogic {
       if (t.isPlayer || !t.alive) continue;
       _drive(t, t.frozen ? null : t.dir, dt);
       if (!t.frozen && !t.moved && t.slideRemaining == 0) {
-        // Упёрся — передумать скоро, но НЕ каждый кадр (иначе ствол «крутится»).
-        t.decisionTimer = 0.18;
+        // Упёрся — сразу повернуть в свободную сторону (обход) и держать курс,
+        // а не дёргаться на месте (иначе «тупят» и ствол вертится).
+        final d = _pickUnstuckDir(t);
+        if (d != null) _turn(t, d);
+        t.decisionTimer = 0.25 + _rng.nextDouble() * 0.3;
       }
     }
   }
@@ -331,6 +334,39 @@ class TanksLogic {
 
   bool _onIce(Tank t) =>
       grid.typeAt(t.cx ~/ TankGeo.sub, t.cy ~/ TankGeo.sub) == TerrainType.ice;
+
+  /// Можно ли сдвинуться в направление [d] (с выравниванием перпендикуляра).
+  bool _canStep(Tank t, Dir d) {
+    var sx = t.sx;
+    var sy = t.sy;
+    if (d.isHorizontal) {
+      sy = TankGeo.alignToHalf(sy).clamp(0, TankGeo.maxOrigin);
+    } else {
+      sx = TankGeo.alignToHalf(sx).clamp(0, TankGeo.maxOrigin);
+    }
+    final nx = sx + d.dx;
+    final ny = sy + d.dy;
+    if (nx < 0 || nx > TankGeo.maxOrigin || ny < 0 || ny > TankGeo.maxOrigin) {
+      return false;
+    }
+    return !_terrainBlocks(nx, ny, d) && !_tankBlocks(t, nx, ny);
+  }
+
+  /// Свободное направление для упёршегося врага: перпендикуляр (в случайном
+  /// порядке), затем разворот. null — заперт со всех сторон.
+  Dir? _pickUnstuckDir(Tank t) {
+    final perp =
+        t.dir.isHorizontal ? [Dir.up, Dir.down] : [Dir.left, Dir.right];
+    if (_rng.nextBool()) {
+      final tmp = perp[0];
+      perp[0] = perp[1];
+      perp[1] = tmp;
+    }
+    for (final d in [...perp, t.dir.opposite]) {
+      if (_canStep(t, d)) return d;
+    }
+    return null;
+  }
 
   // ── Стрельба ──────────────────────────────────────────────────────────────
   void _fireAll(PlayerIntent intent, TankStep out) {
