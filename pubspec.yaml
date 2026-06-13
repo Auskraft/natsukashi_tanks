@@ -51,8 +51,12 @@ flutter:
   uses-material-design: true
 
   assets:
-    # Аудио добавится в фазе 6 (assets/audio/), когда появятся файлы.
     - assets/icon/splash.png
+    # Аудио-клипы фазы 6 (манифест — docs/AUDIO.md). Папка объявлена как
+    # директория: положенные владельцем файлы попадают в сборку автоматически
+    # (нужен повторный `flutter pub get`). Пока пусто — звук no-op (см.
+    # core/audio/audio_manager.dart). `.gitkeep` бандлером игнорируется.
+    - assets/audio/
 
   fonts:
     - family: SpaceGrotesk

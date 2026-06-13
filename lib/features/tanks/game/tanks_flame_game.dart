@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/audio/audio_manager.dart';
 import '../../../core/feedback/haptics.dart';
 import '../logic/level_model.dart';
 import '../logic/tank_entities.dart';
@@ -86,6 +87,10 @@ class TanksFlameGame extends FlameGame {
   Color _flashColor = Colors.white;
   double _time = 0;
 
+  // Идёт ли сейчас бой с боссом — чтобы переключать музыку один раз при
+  // появлении/смерти босса, а не каждый кадр.
+  bool _bossMusic = false;
+
   double _fpsAcc = 0;
   int _fpsFrames = 0;
 
@@ -120,7 +125,9 @@ class TanksFlameGame extends FlameGame {
     _shake = 0;
     _flash = 0;
     isPaused.value = false;
+    _bossMusic = false;
     phase.value = TanksPhase.running;
+    AudioManager.instance.playMusic(MusicTrack.battle);
   }
 
   void togglePause() {
@@ -129,6 +136,9 @@ class TanksFlameGame extends FlameGame {
     if (isPaused.value) {
       _moveDir = null;
       _fireHeld = false;
+      AudioManager.instance.pauseMusic();
+    } else {
+      AudioManager.instance.resumeMusic();
     }
   }
 
@@ -146,7 +156,9 @@ class TanksFlameGame extends FlameGame {
     _shake = 0;
     _flash = 0;
     isPaused.value = false;
+    _bossMusic = false;
     phase.value = TanksPhase.ready;
+    AudioManager.instance.playMusic(MusicTrack.menu);
   }
 
   // ── Игровой цикл ──────────────────────────────────────────────────────────────
@@ -174,39 +186,68 @@ class TanksFlameGame extends FlameGame {
   }
 
   void _applyStep(TankStep s) {
+    final audio = AudioManager.instance;
     if (s.bulletsSpawned.isNotEmpty) {
+      var playerShot = false;
+      var enemyShot = false;
       for (final b in s.bulletsSpawned) {
         _spawnChips(b.center, const Color(0xFFFFE08A), count: 3, speed: 70);
+        if (b.byPlayer) {
+          playerShot = true;
+        } else {
+          enemyShot = true;
+        }
       }
+      // По одному звуку на тип за кадр — иначе одинаковые сэмплы фазируются.
+      if (playerShot) audio.play(SfxEvent.playerShoot);
+      if (enemyShot) audio.play(SfxEvent.enemyShoot);
       Haptics.light();
     }
+    var bossDied = false;
     for (final d in s.tanksDestroyed) {
       _spawnExplosion(d.center, _kindColor(d.kind));
       _popups.add(_Popup(d.center, '+${d.score}', const Color(0xFFFFD54F), big: true));
       _shake = max(_shake, 0.5);
       Haptics.heavy();
+      if (d.kind == TankKind.boss) bossDied = true;
+    }
+    if (s.tanksDestroyed.isNotEmpty) {
+      if (bossDied) {
+        audio.play(SfxEvent.bossExplosion);
+        audio.duckMusic();
+      } else {
+        audio.play(SfxEvent.explosion);
+      }
     }
     for (final b in s.bricksHit) {
       _spawnChips(b.center, const Color(0xFFC56A4E), count: 8);
     }
+    if (s.bricksHit.isNotEmpty) audio.play(SfxEvent.brickHit);
     for (final h in s.steelHits) {
       _spawnChips(h.center, const Color(0xFFB7BECC), count: 5, speed: 120);
       Haptics.select();
     }
+    if (s.steelHits.isNotEmpty) audio.play(SfxEvent.steelHit);
     for (final c in s.bulletClashes) {
       _spawnChips(c, Colors.white, count: 7, speed: 130);
     }
+    if (s.bulletClashes.isNotEmpty) audio.play(SfxEvent.bulletClash);
     for (final f in s.spawnFlashes) {
       _spawnChips(f, const Color(0xFF8AB4FF), count: 12, speed: 130);
     }
+    if (s.spawnFlashes.isNotEmpty) audio.play(SfxEvent.tankSpawn);
     for (final e in s.powerUpsSpawned) {
       _spawnChips(e.center, _powerColor(e.type), count: 8, speed: 90);
     }
+    if (s.powerUpsSpawned.isNotEmpty) audio.play(SfxEvent.powerUpAppear);
     for (final e in s.powerUpsTaken) {
       _spawnExplosion(e.center, _powerColor(e.type));
       _popups.add(_Popup(e.center, _powerLabel(e.type), _powerColor(e.type),
           big: true));
       Haptics.combo(3);
+    }
+    if (s.powerUpsTaken.isNotEmpty) {
+      audio.play(s.playerUpgraded ? SfxEvent.upgrade : SfxEvent.powerUpTaken);
     }
     if (s.gainedScore > 0) score.value = _logic.score;
     if (s.playerHit) {
@@ -216,18 +257,22 @@ class TanksFlameGame extends FlameGame {
       _flash = max(_flash, 0.5);
       _flashColor = const Color(0xFFFF5370);
       Haptics.heavy();
+      audio.play(SfxEvent.playerHit);
     }
     if (s.baseHit) {
       _shake = 1;
       _flash = max(_flash, 0.6);
       _flashColor = const Color(0xFFFF5370);
       Haptics.heavy();
+      audio.play(SfxEvent.baseAlarm);
     }
     if (s.waveCleared) {
       _flash = max(_flash, 0.4);
       _flashColor = const Color(0xFF5CE08A);
       _popups.add(_Popup(const Point(0.5, 0.42), 'ЗАЧИЩЕНО!', const Color(0xFF5CE08A), big: true));
       Haptics.heavy();
+      audio.play(SfxEvent.waveClear);
+      audio.duckMusic();
     }
     enemiesLeft.value = _logic.enemiesAlive + _logic.enemiesRemaining;
     _updateBossHp();
@@ -240,6 +285,8 @@ class TanksFlameGame extends FlameGame {
         livesLost: _livesLost,
       ));
       phase.value = TanksPhase.dead;
+      audio.play(_logic.won ? SfxEvent.victory : SfxEvent.gameOver);
+      audio.stopMusic();
     }
   }
 
@@ -247,10 +294,19 @@ class TanksFlameGame extends FlameGame {
     for (final t in _logic.tanks) {
       if (t.kind == TankKind.boss && t.alive) {
         bossHp.value = t.hp / kTankSpecs[TankKind.boss]!.hp;
+        if (!_bossMusic) {
+          _bossMusic = true;
+          AudioManager.instance.playMusic(MusicTrack.boss);
+        }
         return;
       }
     }
     bossHp.value = -1;
+    if (_bossMusic) {
+      // Босс пал, но партия продолжается — вернуть боевую тему.
+      _bossMusic = false;
+      AudioManager.instance.playMusic(MusicTrack.battle);
+    }
   }
 
   // ── Эффекты ────────────────────────────────────────────────────────────────

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/audio/audio_manager.dart';
 import '../../../core/legal/legal_screens.dart';
 import '../../../core/storage/game_storage.dart';
 import '../logic/daily_level.dart';
@@ -18,10 +19,19 @@ class TanksHomeScreen extends StatefulWidget {
 }
 
 class _TanksHomeScreenState extends State<TanksHomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    AudioManager.instance.playMusic(MusicTrack.menu);
+  }
+
   Future<void> _go(Widget screen) async {
+    AudioManager.instance.play(SfxEvent.uiTap);
     await Navigator.of(context)
         .push(MaterialPageRoute<void>(builder: (_) => screen));
-    if (mounted) setState(() {}); // обновить стрик/дейли/звёзды по возвращении
+    if (!mounted) return;
+    AudioManager.instance.playMusic(MusicTrack.menu); // вернулись — снова меню
+    setState(() {}); // обновить стрик/дейли/звёзды по возвращении
   }
 
   @override

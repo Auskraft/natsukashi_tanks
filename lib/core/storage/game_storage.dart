@@ -111,6 +111,22 @@ class GameStorage {
 
   Future<void> setHaptics(bool on) => _prefs.setBool('haptics_on', on);
 
+  // ── Звук (общий мьют + громкость музыки/эффектов) ──────────────────────────
+
+  /// Полный мьют (быстрый тумблер). По умолчанию выключен — звук есть.
+  bool get audioMuted => _prefs.getBool('audio_muted') ?? false;
+  Future<void> setAudioMuted(bool on) => _prefs.setBool('audio_muted', on);
+
+  /// Громкость музыки 0..1 (по умолчанию 0.6 — фон не давит SFX).
+  double get audioMusicVolume => _prefs.getDouble('audio_music_vol') ?? 0.6;
+  Future<void> setAudioMusicVolume(double v) =>
+      _prefs.setDouble('audio_music_vol', v);
+
+  /// Громкость эффектов 0..1 (по умолчанию 0.85).
+  double get audioSfxVolume => _prefs.getDouble('audio_sfx_vol') ?? 0.85;
+  Future<void> setAudioSfxVolume(double v) =>
+      _prefs.setDouble('audio_sfx_vol', v);
+
   static String _dateKey(DateTime d) =>
       '${d.year}-${d.month.toString().padLeft(2, '0')}-'
       '${d.day.toString().padLeft(2, '0')}';

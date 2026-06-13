@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 
+import 'core/audio/audio_manager.dart';
 import 'core/feedback/haptics.dart';
 import 'core/legal/legal_screens.dart';
 import 'core/storage/game_storage.dart';
@@ -23,6 +24,7 @@ Future<void> main() async {
     Future<void>.delayed(const Duration(milliseconds: 1200)),
   ]);
   Haptics.enabled = GameStorage.instance.hapticsOn;
+  await AudioManager.instance.init(); // читает настройки, прелоад, no-op без файлов
 
   runApp(const TanksApp());
 }
