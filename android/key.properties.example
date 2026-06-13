@@ -1,0 +1,15 @@
+# ШАБЛОН подписи релиза. Скопируй в android/key.properties (без .example) и
+# заполни своими значениями. И key.properties, и сам keystore (*.jks) — в
+# .gitignore: НЕ коммить (пароли у владельца, напр. в Bitwarden).
+#
+# Создать upload-keystore один раз (если нет):
+#   keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 \
+#           -validity 10000 -alias upload
+# Положи upload-keystore.jks в android/app/ — путь storeFile ниже относителен
+# этой папке. Можно ПЕРЕИСПОЛЬЗОВАТЬ keystore сборника natsukashi_yoru
+# (тогда укажи путь к нему). build.gradle.kts уже читает этот файл для релиза.
+
+storePassword=ПАРОЛЬ_ХРАНИЛИЩА
+keyPassword=ПАРОЛЬ_КЛЮЧА
+keyAlias=upload
+storeFile=upload-keystore.jks
