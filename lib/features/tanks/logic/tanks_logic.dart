@@ -221,9 +221,9 @@ class TanksLogic {
     for (final t in tanks) {
       if (t.isPlayer || !t.alive) continue;
       _drive(t, t.frozen ? null : t.dir, dt);
-      if (!t.frozen && !t.moved && t.slideRemaining == 0) {
-        // Упёрся — сразу повернуть в свободную сторону (обход) и держать курс,
-        // а не дёргаться на месте (иначе «тупят» и ствол вертится).
+      if (!t.frozen && t.blocked) {
+        // Реально упёрся — сразу повернуть в свободную сторону (обход) и держать
+        // курс, а не дёргаться на месте (иначе «тупят» и ствол вертится).
         final d = _pickUnstuckDir(t);
         if (d != null) _turn(t, d);
         t.decisionTimer = 0.25 + _rng.nextDouble() * 0.3;
@@ -234,6 +234,7 @@ class TanksLogic {
   void _drive(Tank t, Dir? desired, double dt) {
     final wasMoving = t.wasMoving;
     t.moved = false;
+    t.blocked = false;
     if (t.frozen) {
       t.wasMoving = false;
       return;
@@ -283,6 +284,7 @@ class TanksLogic {
         moved = true;
       } else {
         t.moveAccum = 0;
+        t.blocked = true;
         break;
       }
     }
