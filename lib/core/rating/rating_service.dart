@@ -19,7 +19,7 @@ class RatingService {
   }
 
   Future<void> openEmail() async {
-    final subject = Uri.encodeComponent('Natsukashi Yoru — танки — отзыв');
+    final subject = Uri.encodeComponent('Natsukashi Yoru Tanks — отзыв');
     await launchUrl(Uri.parse('mailto:$_email?subject=$subject'));
   }
 }

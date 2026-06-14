@@ -134,7 +134,7 @@ class ConsentScreen extends StatelessWidget {
           child: Column(
             children: [
               const Spacer(),
-              const Text('🌙', style: TextStyle(fontSize: 56)),
+              const Text('🪖', style: TextStyle(fontSize: 56)),
               const SizedBox(height: 14),
               const Text(
                 kAppLegalName,
@@ -147,7 +147,7 @@ class ConsentScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Сборник мини-игр. Прогресс хранится на вашем устройстве.',
+                'Аркада в танковых сражениях. Прогресс хранится на вашем устройстве.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 14, color: _textMuted, height: 1.5),
               ),
