@@ -15,6 +15,7 @@ void main() {
     expect(find.text('Выживание'), findsOneWidget);
     expect(find.text('Вызов дня'), findsOneWidget);
     expect(find.text('Настройки'), findsOneWidget);
+    expect(find.text('Оцените'), findsOneWidget);
     expect(find.text('Документы'), findsOneWidget);
   });
 }

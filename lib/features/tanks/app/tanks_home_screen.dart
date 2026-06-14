@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/audio/audio_manager.dart';
 import '../../../core/legal/legal_screens.dart';
+import '../../../core/rating/rate_sheet.dart';
 import '../../../core/storage/game_storage.dart';
 import '../logic/daily_level.dart';
 import '../logic/level_model.dart';
@@ -123,6 +124,18 @@ class _TanksHomeScreenState extends State<TanksHomeScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: _SmallButton(
+                      icon: Icons.star_rounded,
+                      label: 'Оцените',
+                      color: const Color(0xFFFFD54F),
+                      onTap: () {
+                        AudioManager.instance.play(SfxEvent.uiTap);
+                        showRateSheet(context);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _SmallButton(
                       icon: Icons.description_outlined,
                       label: 'Документы',
                       onTap: () => _go(const DocsScreen()),
@@ -207,11 +220,13 @@ class _SmallButton extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
+    this.color = const Color(0xFFA78BFA),
   });
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -225,7 +240,7 @@ class _SmallButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 14),
           child: Column(
             children: [
-              Icon(icon, color: const Color(0xFFA78BFA), size: 22),
+              Icon(icon, color: color, size: 22),
               const SizedBox(height: 6),
               Text(label,
                   style: const TextStyle(
