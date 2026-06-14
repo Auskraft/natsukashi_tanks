@@ -1,16 +1,16 @@
-# STORE_DESCRIPTION — Natsukashi Yoru — Танки (RuStore)
+# STORE_DESCRIPTION — Natsukashi Yoru Tanks (RuStore)
 
 > Черновик карточки для RuStore — правь под себя. `applicationId`
 > `com.auskraft.natsukashi_tanks`, версия 1.0.0 (versionCode 1).
 
 ## Название
-**Natsukashi Yoru — Танки**
+**Natsukashi Yoru Tanks**
 
 ## Короткое описание (до ~80 символов)
 Ретро-танки в духе Battle City: кампания, боссы, выживание и вызов дня.
 
 ## Полное описание
-«Танки» — олдскульная аркада в духе классических танковых баталий 8-бит эпохи,
+«Natsukashi Yoru Tanks» — олдскульная аркада в духе классических танковых баталий 8-бит эпохи,
 но с современным «соком»: сочные взрывы, тряска экрана, неон-частицы,
 вибро-отклик и драйвовый чиптюн-саундтрек.
 

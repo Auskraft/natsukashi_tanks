@@ -10,7 +10,7 @@ import 'core/storage/game_storage.dart';
 import 'core/theme/app_theme.dart';
 import 'features/tanks/app/tanks_home_screen.dart';
 
-/// Точка входа **отдельного приложения «Танчики»** (отдельный проект).
+/// Точка входа **отдельного приложения «Natsukashi Yoru Tanks»** (отдельный проект).
 ///
 /// Запуск: `flutter run`. Бутит в домашнюю витрину: Кампания / Выживание /
 /// Вызов дня / Настройки / Документы.
@@ -58,7 +58,7 @@ class _SplashApp extends StatelessWidget {
   }
 }
 
-/// Корень приложения «Танчики». При первом запуске — экран согласия с
+/// Корень приложения «Natsukashi Yoru Tanks». При первом запуске — экран согласия с
 /// документами (общий флаг `consent_accepted_v1`), далее — игра.
 class TanksApp extends StatefulWidget {
   const TanksApp({super.key});
@@ -78,7 +78,7 @@ class _TanksAppState extends State<TanksApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Танчики',
+      title: 'Natsukashi Yoru Tanks',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.night,
       home: _consent
