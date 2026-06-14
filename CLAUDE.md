@@ -83,9 +83,11 @@
   настроена (`build.gradle.kts` читает `key.properties`; шаблон —
   `android/key.properties.example`) — владельцу создать keystore + `key.properties`
   (или переиспользовать ключ сборника). Карточка стора — черновик
-  `STORE_DESCRIPTION.md`. Осталось: keystore, `flutter build appbundle/apk
-  --release`, скриншоты, опц. отдельная иконка/сплэш танков (сейчас от сборника),
-  залить. Контент расширяется записью в `level_data.dart` (парсер-тест валидирует).
+  `STORE_DESCRIPTION.md`. **Иконка/сплэш танков готовы** (кей-арт
+  `tool/keyart_src.png` → `tool/make_icons.py` → `flutter_launcher_icons` /
+  `flutter_native_splash`). Осталось: keystore, `flutter build appbundle/apk
+  --release`, скриншоты, залить. Контент расширяется записью в `level_data.dart`
+  (парсер-тест валидирует).
 
 ## Запуск и проверка
 ```bash

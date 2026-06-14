@@ -27,7 +27,9 @@ dev_dependencies:
   flutter_launcher_icons: ^0.14.1
 
 # ── Иконка приложения (dart run flutter_launcher_icons) ──────────────────────
-# Пока переиспользуется иконка сборника; отдельный арт «танков» — в стор-полише.
+# Иконка/сплэш — кей-арт танков: tool/keyart_src.png → `python tool/make_icons.py`
+# → assets/icon/icon.png (кроп на танк) + splash.png (полный арт). Затем
+# `dart run flutter_launcher_icons` и `flutter_native_splash:create`.
 flutter_launcher_icons:
   android: true
   ios: false
