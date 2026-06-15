@@ -12,7 +12,7 @@ const _textMuted = Color(0xFF7060A0);
 const _accent = Color(0xFFA78BFA);
 
 /// Версия приложения для блока «О приложении» (синхронно с pubspec version).
-const String _appVersion = '1.0.0';
+const String _appVersion = '1.1.0';
 
 /// Просмотр одного юридического документа: шапка с кнопкой назад + текст.
 class LegalDocScreen extends StatelessWidget {
