@@ -15,6 +15,9 @@ void main() {
         for (final lvl in w.levels) {
           final m = parseLevelMap(lvl.map);
           expect(m.enemySpawns, isNotEmpty, reason: lvl.name);
+          // Враги не должны лезть из одной точки — минимум 2 точки на уровень.
+          expect(m.enemySpawns.length, greaterThanOrEqualTo(2),
+              reason: '${lvl.name}: мало точек спавна врагов');
           count++;
         }
       }
