@@ -116,4 +116,29 @@ void main() {
       expect(maxSeen, lessThanOrEqualTo(3));
     });
   });
+
+  group('выбор точки спавна (фидбек: не на одном месте)', () {
+    test('распределяет по точкам и не повторяет предыдущую', () {
+      const tiles = [Point(0, 0), Point(6, 0), Point(11, 0)];
+      final rng = Random(1);
+      final counts = <Point<int>, int>{};
+      Point<int>? prev;
+      var consecutiveSame = 0;
+      for (var i = 0; i < 300; i++) {
+        final t = TanksLogic.chooseSpawnTile(tiles, prev, rng)!;
+        counts.update(t, (v) => v + 1, ifAbsent: () => 1);
+        if (t == prev) consecutiveSame++;
+        prev = t;
+      }
+      expect(counts.length, 3, reason: 'должны задействоваться все точки');
+      expect(consecutiveSame, 0, reason: 'подряд одна точка не выбирается');
+    });
+
+    test('единственная свободная точка используется, пустой список → null', () {
+      final rng = Random(2);
+      expect(TanksLogic.chooseSpawnTile(const [Point(6, 0)], const Point(6, 0), rng),
+          const Point(6, 0));
+      expect(TanksLogic.chooseSpawnTile(const <Point<int>>[], null, rng), isNull);
+    });
+  });
 }

@@ -69,6 +69,10 @@ class TanksLogic {
   late final int _spawnY;
   late final Dir _spawnDir;
 
+  /// Последняя использованная точка спавна врага — чтобы враги не «возрождались
+  /// на одном месте»: при выборе по возможности берём другую свободную точку.
+  Point<int>? _lastSpawnTile;
+
   // Бонус «лопата»: укрепление базы сталью на время.
   double _shovelTimer = 0;
   final List<List<int>> _shovelSaved = []; // [tx, ty, typeIndex, quad]
@@ -129,6 +133,7 @@ class TanksLogic {
     if (!d.ready(dt, enemiesAlive)) return;
     final tile = _freeSpawnTile(d.spawnTiles);
     if (tile == null) return;
+    _lastSpawnTile = tile;
     final kind = d.next();
     final e = Tank(
       id: _nextId(),
@@ -146,10 +151,26 @@ class TanksLogic {
   }
 
   Point<int>? _freeSpawnTile(List<Point<int>> tiles) {
-    for (final t in tiles) {
-      if (!_areaOccupied(t.x * TankGeo.sub, t.y * TankGeo.sub)) return t;
+    final free = <Point<int>>[
+      for (final t in tiles)
+        if (!_areaOccupied(t.x * TankGeo.sub, t.y * TankGeo.sub)) t,
+    ];
+    return chooseSpawnTile(free, _lastSpawnTile, _rng);
+  }
+
+  /// Выбор точки спавна среди свободных [free]: случайно и по возможности НЕ
+  /// повторяя предыдущую [last] — иначе враги «возрождаются на одном месте»
+  /// (живой фидбек игрока). Чистая и детерминированная (Random инъекцией) —
+  /// тестируется напрямую.
+  static Point<int>? chooseSpawnTile(
+      List<Point<int>> free, Point<int>? last, Random rng) {
+    if (free.isEmpty) return null;
+    var candidates = free;
+    if (free.length > 1 && last != null) {
+      final others = free.where((t) => t != last).toList();
+      if (others.isNotEmpty) candidates = others;
     }
-    return null;
+    return candidates[rng.nextInt(candidates.length)];
   }
 
   bool _areaOccupied(int sx, int sy) {

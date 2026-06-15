@@ -41,7 +41,7 @@
 - ✅ **Формат уровней** (ASCII 13×13 + `level_parser` + `level_data` с мирами),
   темизация рендера по миру. Загрузчик `level_loader.buildLevel`.
 - ✅ **Вход** `lib/main.dart` → домашняя витрина (сплэш → согласие → витрина).
-- ✅ **58 тестов** зелёные, `flutter analyze` чисто.
+- ✅ **60 тестов** зелёные, `flutter analyze` чисто.
 - ✅ **Аудио-система (Фаза 6, код):** `core/audio/AudioManager` — loop-музыка,
   SFX через пулы (`AudioPool` на эффект — мгновенно, без рассинхрона), дакинг,
   громкость/мьют (персист), прелоад; `MusicTrack`/
@@ -93,7 +93,7 @@
 ```bash
 flutter pub get
 flutter analyze          # «No issues found!» — это делает агент
-flutter test             # 58 тестов зелёные — это делает агент
+flutter test             # 60 тестов зелёные — это делает агент
 flutter run              # вход lib/main.dart — это делает ПОЛЬЗОВАТЕЛЬ (агент не может)
 ```
 

@@ -17,7 +17,7 @@
 flutter pub get
 flutter run        # вход lib/main.dart
 flutter analyze    # должно быть «No issues found!»
-flutter test       # 58 тестов
+flutter test       # 60 тестов
 ```
 
 Сборка APK/AAB — в Android Studio (релизная подпись через `android/key.properties`,
